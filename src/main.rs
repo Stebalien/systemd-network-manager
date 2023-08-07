@@ -1,6 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
 use futures::StreamExt;
+use zbus::zvariant::OwnedObjectPath;
 use zbus::Connection;
 
 #[allow(unused)]
@@ -28,6 +29,18 @@ struct Args {
     user: bool,
 }
 
+async fn handle_state_change(
+    systemd: &systemd_iface::ManagerProxy<'_>,
+    state: u32,
+) -> Result<Option<OwnedObjectPath>> {
+    Ok(match state {
+        nm_state::CONNECTED_GLOBAL => Some(systemd.start_unit(ONLINE_TARGET, "replace").await?),
+        nm_state::CONNECTED_SITE => Some(systemd.start_unit(CAPTIVE_TARGET, "replace").await?),
+        nm_state::DISCONNECTED => Some(systemd.start_unit(OFFLINE_TARGET, "replace").await?),
+        _ => None,
+    })
+}
+
 #[tokio::main]
 pub async fn main() -> Result<()> {
     let args = Args::parse();
@@ -42,14 +55,10 @@ pub async fn main() -> Result<()> {
     let nm = network_manager_iface::NetworkManagerProxy::new(&nm_conn).await?;
 
     let mut signals = nm.receive_state_changed().await?;
+    handle_state_change(&systemd, nm.state().await?).await?;
+
     while let Some(signal) = signals.next().await {
-        let state = signal.args()?.state;
-        match state {
-            nm_state::CONNECTED_GLOBAL => systemd.start_unit(ONLINE_TARGET, "replace").await?,
-            nm_state::CONNECTED_SITE => systemd.start_unit(CAPTIVE_TARGET, "replace").await?,
-            nm_state::DISCONNECTED => systemd.start_unit(OFFLINE_TARGET, "replace").await?,
-            _ => continue,
-        };
+        handle_state_change(&systemd, signal.args()?.state).await?;
     }
 
     Ok(())
