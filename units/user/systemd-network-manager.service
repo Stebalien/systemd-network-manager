@@ -1,5 +1,5 @@
 [Unit]
-Description="Manages the online, offline, and captive-portal targets based on the current NetworkManager state."
+Description=Bind systemd targets to NetworkManager states
 
 [Service]
 ExecStart=/usr/bin/systemd-network-manager --user

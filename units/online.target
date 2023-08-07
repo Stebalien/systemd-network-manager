@@ -1,3 +1,3 @@
 [Unit]
-Description="The network is up and we have a working internet connection."
+Description=Online
 Conflicts=offline.target captive-portal.target
