@@ -1,8 +1,0 @@
-[Unit]
-Description="We have a network connection but can't reach the internet."
-PartOf=NetworkManager.service
-Requisite=NetworkManager.service
-After=NetworkManager.service
-
-[Install]
-WantedBy=NetworkManager.service

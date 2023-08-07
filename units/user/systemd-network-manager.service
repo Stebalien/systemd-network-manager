@@ -1,0 +1,8 @@
+[Unit]
+Description="Manages the online, offline, and captive-portal targets based on the current NetworkManager state."
+
+[Service]
+ExecStart=/usr/bin/systemd-network-manager --user
+
+[Install]
+WantedBy=default.target
