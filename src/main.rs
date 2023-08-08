@@ -1,6 +1,9 @@
+use std::time::Duration;
+
 use anyhow::Result;
 use clap::Parser;
 use futures::StreamExt;
+use tokio::time;
 use zbus::zvariant::OwnedObjectPath;
 use zbus::Connection;
 
@@ -23,6 +26,8 @@ static CAPTIVE_TARGET: &str = "captive-portal.target";
 mod network_manager_iface;
 mod systemd_iface;
 
+const CONNECTIVITY_TIMEOUT: Duration = Duration::from_secs(10);
+
 #[derive(Parser)]
 struct Args {
     #[arg(short, long)]
@@ -35,13 +40,16 @@ async fn handle_state_change(
 ) -> Result<Option<OwnedObjectPath>> {
     Ok(match state {
         nm_state::CONNECTED_GLOBAL => Some(systemd.start_unit(ONLINE_TARGET, "replace").await?),
-        nm_state::CONNECTED_SITE => Some(systemd.start_unit(CAPTIVE_TARGET, "replace").await?),
         nm_state::DISCONNECTED => Some(systemd.start_unit(OFFLINE_TARGET, "replace").await?),
+        nm_state::CONNECTED_SITE => {
+            time::sleep(CONNECTIVITY_TIMEOUT).await;
+            Some(systemd.start_unit(CAPTIVE_TARGET, "replace").await?)
+        }
         _ => None,
     })
 }
 
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 pub async fn main() -> Result<()> {
     let args = Args::parse();
     let nm_conn = Connection::system().await?;
@@ -55,11 +63,19 @@ pub async fn main() -> Result<()> {
     let nm = network_manager_iface::NetworkManagerProxy::new(&nm_conn).await?;
 
     let mut signals = nm.receive_state_changed().await?;
-    handle_state_change(&systemd, nm.state().await?).await?;
-
-    while let Some(signal) = signals.next().await {
-        handle_state_change(&systemd, signal.args()?.state).await?;
+    let mut next_state = nm.state().await?;
+    loop {
+        let active_task = handle_state_change(&systemd, next_state);
+        tokio::select! {
+            signal = signals.next() => match signal {
+                Some(signal) => {
+                    next_state = signal.args()?.state
+                },
+                None => return Ok(()),
+            },
+            result = active_task => {
+                result?;
+            }
+        }
     }
-
-    Ok(())
 }
