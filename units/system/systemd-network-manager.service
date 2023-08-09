@@ -5,6 +5,7 @@ Requisite=NetworkManager.service
 After=NetworkManager.service
 
 [Service]
+Restart=always
 ExecStart=/usr/bin/systemd-network-manager --user
 
 [Install]
