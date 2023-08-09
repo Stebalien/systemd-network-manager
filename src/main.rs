@@ -101,16 +101,18 @@ pub async fn main() -> Result<()> {
     let mut next_state = nm.state().await?.try_into().unwrap_or_default();
     loop {
         let active_task = handle_state_change(&systemd, next_state);
-        tokio::select! {
-            state = states.next() => match state {
-                Some(state) => {
-                    next_state = state?;
-                },
-                None => return Ok(()),
-            },
+        let state = tokio::select! {
+            state = states.next() => state,
             result = active_task => {
                 result?;
+                states.next().await
             }
+        };
+        match state {
+            Some(state) => {
+                next_state = state?;
+            }
+            None => return Ok(()),
         }
     }
 }
