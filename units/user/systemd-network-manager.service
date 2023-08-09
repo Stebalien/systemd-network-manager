@@ -2,6 +2,7 @@
 Description=Bind systemd targets to NetworkManager states
 
 [Service]
+Slice=background.slice
 ExecStart=/usr/bin/systemd-network-manager --user
 
 [Install]
