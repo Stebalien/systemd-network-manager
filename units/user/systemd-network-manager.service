@@ -1,5 +1,5 @@
 [Unit]
-Description=Bind systemd targets to NetworkManager states
+Description=Bind systemd targets to network states
 
 [Service]
 Slice=background.slice

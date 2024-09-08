@@ -1,12 +1,10 @@
 [Unit]
-Description=Bind systemd targets to NetworkManager states
-PartOf=NetworkManager.service
-Requisite=NetworkManager.service
-After=NetworkManager.service
+Description=Bind systemd targets to network states
+After=systemd-networkd.service
 
 [Service]
 Restart=always
 ExecStart=/usr/bin/systemd-network-manager --user
 
 [Install]
-WantedBy=NetworkManager.service
+WantedBy=systemd-networkd.service
