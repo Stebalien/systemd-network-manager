@@ -31,14 +31,14 @@ async fn handle_state_change(
         systemd.start_unit(OFFLINE_TARGET, "replace").await?;
         return Ok(());
     }
-    if !ping().await {
-        systemd.start_unit(CAPTIVE_TARGET, "replace").await?;
-        loop {
-            time::sleep(PING_SLEEP).await;
-            if ping().await {
-                break;
-            }
+
+    let mut count = 0;
+    while !ping().await {
+        if count == 1 {
+            systemd.start_unit(CAPTIVE_TARGET, "replace").await?;
         }
+        time::sleep(PING_SLEEP).await;
+        count += 1;
     }
     systemd.start_unit(ONLINE_TARGET, "replace").await?;
     Ok(())
