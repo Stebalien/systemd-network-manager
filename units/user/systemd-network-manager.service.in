@@ -4,7 +4,7 @@ Description=Bind systemd targets to network states
 [Service]
 Slice=background.slice
 Restart=always
-ExecStart=/usr/bin/systemd-network-manager --user
+ExecStart=LIBEXECDIR/systemd-network-manager --user
 
 [Install]
 WantedBy=default.target

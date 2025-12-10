@@ -4,7 +4,7 @@ After=systemd-networkd.service
 
 [Service]
 Restart=always
-ExecStart=/usr/bin/systemd-network-manager
+ExecStart=LIBEXECDIR/systemd-network-manager
 
 [Install]
 WantedBy=systemd-networkd.service

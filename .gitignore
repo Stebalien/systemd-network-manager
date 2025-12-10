@@ -1,1 +1,2 @@
 /target
+/units/*/systemd-network-manager.service
