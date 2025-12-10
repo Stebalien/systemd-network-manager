@@ -7,13 +7,13 @@ export CARGO_TARGET_DIR
 
 BIN = $(CARGO_TARGET_DIR)/release/systemd-network-manager
 
-UNIT_SOURCES := $(wildcard units/**/*.in)
-UNIT_TARGETS := $(UNIT_SOURCES:.in=)
+USER_UNIT_SOURCES := $(wildcard units/user/*.in)
+SYSTEM_UNIT_SOURCES := $(wildcard units/system/*.in)
 
-USER_UNITS := $(filter-out $(wildcard units/user/*.in), $(wildcard units/user/*.*)) $(wildcard units/*.*)
-SYSTEM_UNITS := $(filter-out $(wildcard units/system/*.in), $(wildcard units/system/*.*)) $(wildcard units/*.*)
+USER_UNITS := $(filter-out $(USER_UNIT_SOURCES), $(wildcard units/user/*.*)) $(wildcard units/*.*) $(USER_UNIT_SOURCES:.in=)
+SYSTEM_UNITS := $(filter-out $(wildcard units/system/*.in), $(wildcard units/system/*.*)) $(wildcard units/*.*) $(SYSTEM_UNIT_SOURCES:.in=)
 
-build: $(BIN) $(UNIT_TARGETS)
+build: $(BIN) $(USER_UNITS) $(SYSTEM_UNITS)
 
 $(BIN): .
 	cargo build --release
