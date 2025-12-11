@@ -16,19 +16,19 @@
     };
   };
 
-  outputs = inputs @ { self, crate2nix, flake-parts, ... }: flake-parts.lib.mkFlake { inherit inputs; } {
+  outputs = inputs @ { crate2nix, flake-parts, ... }: flake-parts.lib.mkFlake { inherit inputs; } {
     systems = [
       "x86-linux"
       "x86_64-linux"
       "aarch64-linux"
     ];
-    perSystem = { system, pkgs, lib, inputs', ...}:
+    perSystem = { system, pkgs, ...}:
       let
         cargoNix = crate2nix.tools.${system}.appliedCargoNix {
           name = "systemd-network-manager";
           src = ./.;
         };
-      in rec {
+      in {
         packages = {
           default = cargoNix.rootCrate.build.overrideAttrs (prev: {
             nativeBuildInputs = (prev.nativeBuildInputs or []) ++ [ pkgs.m4 ];
