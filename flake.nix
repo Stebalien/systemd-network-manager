@@ -16,32 +16,52 @@
     };
   };
 
-  outputs = inputs @ { crate2nix, flake-parts, ... }: flake-parts.lib.mkFlake { inherit inputs; } {
-    systems = [
-      "x86-linux"
-      "x86_64-linux"
-      "aarch64-linux"
-    ];
-    imports = [ flake-parts.flakeModules.easyOverlay ];
-    perSystem = { config, system, pkgs, ...}:
-      let
-        cargoNix = crate2nix.tools.${system}.appliedCargoNix {
-          name = "systemd-network-manager";
-          src = ./.;
-        };
-      in rec {
-        packages = {
-          systemd-network-manager = cargoNix.rootCrate.build.overrideAttrs (prev: {
-            nativeBuildInputs = (prev.nativeBuildInputs or []) ++ [ pkgs.m4 ];
-            postInstall = prev.postInstall + ''
+  outputs = inputs @ { crate2nix, flake-parts, ... }: flake-parts.lib.mkFlake { inherit inputs; } (
+    { moduleWithSystem, ... }:
+    {
+      systems = [
+        "x86-linux"
+        "x86_64-linux"
+        "aarch64-linux"
+      ];
+      imports = [ flake-parts.flakeModules.easyOverlay ];
+      perSystem = { config, system, pkgs, ...}:
+        let
+          cargoNix = crate2nix.tools.${system}.appliedCargoNix {
+            name = "systemd-network-manager";
+            src = ./.;
+          };
+        in rec {
+          packages = {
+            systemd-network-manager = cargoNix.rootCrate.build.overrideAttrs (prev: {
+              nativeBuildInputs = (prev.nativeBuildInputs or []) ++ [ pkgs.m4 ];
+              postInstall = prev.postInstall + ''
               make install-units PREFIX="$out" LIBEXECDIR="$out/bin" DESTDIR=""
             '';
-          });
-          default = packages.systemd-network-manager;
+            });
+            default = packages.systemd-network-manager;
+          };
+          overlayAttrs = {
+            inherit (config.packages) systemd-network-manager;
+          };
         };
-        overlayAttrs = {
-          inherit (config.packages) systemd-network-manager;
-        };
-      };
-  };
-}
+      flake.nixosModules.default = moduleWithSystem (
+        perSystem@{pkgs, self', ... }:
+        nixos@{lib, config, ... }:
+        let
+          cfg = config.services.systemd-network-manager;
+        in
+        {
+          options.services.systemd-network-manager = {
+            enable = lib.mkEnableOption "enable the float homepage service";
+            package = lib.mkPackageOption self'.packages "systemd-network-manager" { };
+          };
+          config = lib.mkIf cfg.enable {
+            systemd = {
+              packages = [ cfg.package ];
+              services.systemd-network-manager.wantedBy = [ "systemd-networkd.service" ];
+            };
+          };
+        });
+    });
+  }
