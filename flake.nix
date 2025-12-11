@@ -22,20 +22,25 @@
       "x86_64-linux"
       "aarch64-linux"
     ];
-    perSystem = { system, pkgs, ...}:
+    imports = [ flake-parts.flakeModules.easyOverlay ];
+    perSystem = { config, system, pkgs, ...}:
       let
         cargoNix = crate2nix.tools.${system}.appliedCargoNix {
           name = "systemd-network-manager";
           src = ./.;
         };
-      in {
+      in rec {
         packages = {
-          default = cargoNix.rootCrate.build.overrideAttrs (prev: {
+          systemd-network-manager = cargoNix.rootCrate.build.overrideAttrs (prev: {
             nativeBuildInputs = (prev.nativeBuildInputs or []) ++ [ pkgs.m4 ];
             postInstall = prev.postInstall + ''
               make install-units PREFIX="$out" LIBEXECDIR="$out/bin" DESTDIR=""
             '';
           });
+          default = packages.systemd-network-manager;
+        };
+        overlayAttrs = {
+          inherit (config.packages) systemd-network-manager;
         };
       };
   };
