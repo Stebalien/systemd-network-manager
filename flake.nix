@@ -62,6 +62,7 @@
               packages = [ cfg.package ];
               services.systemd-network-manager.wantedBy = [ "systemd-networkd.service" ];
             };
+            environment.systemPackages = [ cfg.package ];
           };
         });
     });
