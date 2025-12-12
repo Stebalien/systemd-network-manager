@@ -7,16 +7,10 @@
       url = "github:hercules-ci/flake-parts";
       inputs.nixpkgs-lib.follows = "nixpkgs";
     };
-    crate2nix = {
-      url = "github:nix-community/crate2nix";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        flake-parts.follows = "flake-parts";
-      };
-    };
+    crane.url = "github:ipetkov/crane";
   };
 
-  outputs = inputs @ { crate2nix, flake-parts, ... }: flake-parts.lib.mkFlake { inherit inputs; } (
+  outputs = inputs @ { crane, flake-parts, ... }: flake-parts.lib.mkFlake { inherit inputs; } (
     { moduleWithSystem, ... }:
     {
       systems = [
@@ -26,20 +20,35 @@
         "armv7l-linux"
       ];
       imports = [ flake-parts.flakeModules.easyOverlay ];
-      perSystem = { config, system, pkgs, ...}:
+      perSystem = { config, system, lib, pkgs, ...}:
         let
-          cargoNix = crate2nix.tools.${system}.appliedCargoNix {
-            name = "systemd-network-manager";
-            src = ./.;
+          craneLib = crane.mkLib pkgs;
+          src = let
+            unfilteredRoot = ./.;
+          in lib.fileset.toSource {
+            root = unfilteredRoot;
+            fileset = lib.fileset.unions [
+              (craneLib.fileset.commonCargoSources unfilteredRoot)
+              ./Makefile
+              ./units
+            ];
           };
-        in rec {
-          packages = {
-            systemd-network-manager = cargoNix.rootCrate.build.overrideAttrs (prev: {
-              nativeBuildInputs = (prev.nativeBuildInputs or []) ++ [ pkgs.m4 ];
-              postInstall = prev.postInstall + ''
+          commonArgs = {
+            inherit src;
+            strictDeps = true;
+            buildInputs = [ pkgs.openssl ];
+            nativeBuildInputs = [ pkgs.pkg-config  pkgs.m4 ];
+          };
+          cargoArtifacts = craneLib.buildDepsOnly commonArgs;
+          systemd-network-manager = craneLib.buildPackage (commonArgs // {
+            inherit cargoArtifacts;
+            postInstall = ''
               make install-units PREFIX="$out" LIBEXECDIR="$out/bin" DESTDIR=""
             '';
-            });
+          });
+        in rec {
+          packages = {
+            inherit systemd-network-manager;
             default = packages.systemd-network-manager;
           };
           overlayAttrs = {
