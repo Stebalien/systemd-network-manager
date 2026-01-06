@@ -63,7 +63,7 @@
         in
         {
           options.services.systemd-network-manager = {
-            enable = lib.mkEnableOption "enable the float homepage service";
+            enable = lib.mkEnableOption "enable the systemd-network-manager";
             package = lib.mkPackageOption self'.packages "systemd-network-manager" { };
           };
           config = lib.mkIf cfg.enable {
