@@ -70,6 +70,7 @@
             systemd = {
               packages = [ cfg.package ];
               services.systemd-network-manager.wantedBy = [ "systemd-networkd.service" ];
+              user.services.systemd-network-manager.wantedBy = [ "default.target" ];
             };
             environment.systemPackages = [ cfg.package ];
           };
