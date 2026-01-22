@@ -6,7 +6,8 @@
     crane.url = "github:ipetkov/crane";
   };
 
-  outputs = inputs @ { nixpkgs, crane, ... }:
+  outputs =
+    inputs@{ nixpkgs, crane, ... }:
     let
       eachSystem = nixpkgs.lib.genAttrs [
         "i686-linux"
@@ -16,44 +17,61 @@
       ];
     in
     {
-      packages = eachSystem (system:
+      packages = eachSystem (
+        system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
           lib = pkgs.lib;
           craneLib = crane.mkLib pkgs;
-          src = let
-            unfilteredRoot = ./.;
-          in lib.fileset.toSource {
-            root = unfilteredRoot;
-            fileset = lib.fileset.unions [
-              (craneLib.fileset.commonCargoSources unfilteredRoot)
-              ./Makefile
-              ./units
-            ];
-          };
+          src =
+            let
+              unfilteredRoot = ./.;
+            in
+            lib.fileset.toSource {
+              root = unfilteredRoot;
+              fileset = lib.fileset.unions [
+                (craneLib.fileset.commonCargoSources unfilteredRoot)
+                ./Makefile
+                ./units
+              ];
+            };
           commonArgs = {
             inherit src;
             strictDeps = true;
             buildInputs = [ pkgs.openssl ];
-            nativeBuildInputs = [ pkgs.pkg-config  pkgs.m4 ];
+            nativeBuildInputs = [
+              pkgs.pkg-config
+              pkgs.m4
+            ];
           };
           cargoArtifacts = craneLib.buildDepsOnly commonArgs;
-          systemd-network-manager = craneLib.buildPackage (commonArgs // {
-            inherit cargoArtifacts;
-            postInstall = ''
-              make install-units PREFIX="$out" LIBEXECDIR="$out/bin" DESTDIR=""
-            '';
-          });
-        in rec {
+          systemd-network-manager = craneLib.buildPackage (
+            commonArgs
+            // {
+              inherit cargoArtifacts;
+              postInstall = ''
+                make install-units PREFIX="$out" LIBEXECDIR="$out/bin" DESTDIR=""
+              '';
+            }
+          );
+        in
+        rec {
           inherit systemd-network-manager;
           default = systemd-network-manager;
         }
       );
+      formatter = eachSystem (system: nixpkgs.legacyPackages.${system}.nixfmt-tree);
       overlays.default = final: prev: {
         inherit (inputs.self.packages.${final.system}) systemd-network-manager;
       };
 
-      nixosModules.default = { lib, config, pkgs, ... }:
+      nixosModules.default =
+        {
+          lib,
+          config,
+          pkgs,
+          ...
+        }:
         let
           cfg = config.services.systemd-network-manager;
         in
@@ -71,4 +89,4 @@
           };
         };
     };
-  }
+}
