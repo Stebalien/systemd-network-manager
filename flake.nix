@@ -3,25 +3,23 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    flake-parts = {
-      url = "github:hercules-ci/flake-parts";
-      inputs.nixpkgs-lib.follows = "nixpkgs";
-    };
     crane.url = "github:ipetkov/crane";
   };
 
-  outputs = inputs @ { crane, flake-parts, ... }: flake-parts.lib.mkFlake { inherit inputs; } (
-    { moduleWithSystem, ... }:
-    {
-      systems = [
+  outputs = inputs @ { nixpkgs, crane, ... }:
+    let
+      eachSystem = nixpkgs.lib.genAttrs [
         "i686-linux"
         "x86_64-linux"
         "aarch64-linux"
         "armv7l-linux"
       ];
-      imports = [ flake-parts.flakeModules.easyOverlay ];
-      perSystem = { config, system, lib, pkgs, ...}:
+    in
+    {
+      packages = eachSystem (system:
         let
+          pkgs = nixpkgs.legacyPackages.${system};
+          lib = pkgs.lib;
           craneLib = crane.mkLib pkgs;
           src = let
             unfilteredRoot = ./.;
@@ -47,24 +45,22 @@
             '';
           });
         in rec {
-          packages = {
-            inherit systemd-network-manager;
-            default = packages.systemd-network-manager;
-          };
-          overlayAttrs = {
-            inherit (config.packages) systemd-network-manager;
-          };
-        };
-      flake.nixosModules.default = moduleWithSystem (
-        perSystem@{pkgs, self', ... }:
-        nixos@{lib, config, ... }:
+          inherit systemd-network-manager;
+          default = systemd-network-manager;
+        }
+      );
+      overlays.default = final: prev: {
+        inherit (inputs.self.packages.${final.system}) systemd-network-manager;
+      };
+
+      nixosModules.default = { lib, config, pkgs, ... }:
         let
           cfg = config.services.systemd-network-manager;
         in
         {
           options.services.systemd-network-manager = {
             enable = lib.mkEnableOption "enable the systemd-network-manager";
-            package = lib.mkPackageOption self'.packages "systemd-network-manager" { };
+            package = lib.mkPackageOption inputs.self.packages.${pkgs.system} "systemd-network-manager" { };
           };
           config = lib.mkIf cfg.enable {
             systemd = {
@@ -73,6 +69,6 @@
               user.services.systemd-network-manager.wantedBy = [ "default.target" ];
             };
           };
-        });
-    });
+        };
+    };
   }
