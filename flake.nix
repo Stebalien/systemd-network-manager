@@ -15,26 +15,20 @@
         "aarch64-linux"
         "armv7l-linux"
       ];
-    in
-    {
-      packages = eachSystem (
-        system:
+      mkPackages =
+        pkgs:
         let
-          pkgs = nixpkgs.legacyPackages.${system};
           lib = pkgs.lib;
           craneLib = crane.mkLib pkgs;
-          src =
-            let
-              unfilteredRoot = ./.;
-            in
-            lib.fileset.toSource {
-              root = unfilteredRoot;
-              fileset = lib.fileset.unions [
-                (craneLib.fileset.commonCargoSources unfilteredRoot)
-                ./Makefile
-                ./units
-              ];
-            };
+          unfilteredRoot = ./.;
+          src = lib.fileset.toSource {
+            root = unfilteredRoot;
+            fileset = lib.fileset.unions [
+              (craneLib.fileset.commonCargoSources unfilteredRoot)
+              ./Makefile
+              ./units
+            ];
+          };
           commonArgs = {
             inherit src;
             strictDeps = true;
@@ -58,11 +52,13 @@
         rec {
           inherit systemd-network-manager;
           default = systemd-network-manager;
-        }
-      );
+        };
+    in
+    {
+      packages = eachSystem (system: mkPackages nixpkgs.legacyPackages.${system});
       formatter = eachSystem (system: nixpkgs.legacyPackages.${system}.nixfmt-tree);
       overlays.default = final: prev: {
-        inherit (inputs.self.packages.${final.system}) systemd-network-manager;
+        inherit (mkPackages final) systemd-network-manager;
       };
 
       nixosModules.default =
@@ -78,7 +74,7 @@
         {
           options.services.systemd-network-manager = {
             enable = lib.mkEnableOption "enable the systemd-network-manager";
-            package = lib.mkPackageOption inputs.self.packages.${pkgs.system} "systemd-network-manager" { };
+            package = lib.mkPackageOption (mkPackages pkgs) "systemd-network-manager" { };
           };
           config = lib.mkIf cfg.enable {
             systemd = {
