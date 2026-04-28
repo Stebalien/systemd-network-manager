@@ -25,7 +25,7 @@ use zbus::proxy;
     default_service = "org.freedesktop.systemd1",
     default_path = "/org/freedesktop/systemd1"
 )]
-trait Manager {
+pub(crate) trait Manager {
     /// AbandonScope method
     fn abandon_scope(&self, name: &str) -> zbus::Result<()>;
 
