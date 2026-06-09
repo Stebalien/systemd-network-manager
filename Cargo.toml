@@ -9,7 +9,7 @@ clap = { version = "4.3.19", default-features = false, features = ["derive", "st
 reqwest = { version = "0.13.4", features = ["native-tls"], default-features = false }
 tokio = { version = "1.52.3", default-features = false, features = ["macros", "rt", "time"] }
 tokio-stream = { version = "0.1.14", default-features = false }
-zbus = { version = "5.0.0", default-features = false, features = ["tokio"] }
+zbus = { version = "5.16.0", default-features = false, features = ["tokio"] }
 
 [profile.release]
 lto = "yes"
