@@ -36,10 +36,7 @@ pub(crate) trait Manager {
     fn force_renew_link(&self, ifindex: i32) -> zbus::Result<()>;
 
     /// GetLinkByIndex method
-    fn get_link_by_index(
-        &self,
-        ifindex: i32,
-    ) -> zbus::Result<(String, zbus::OwnedObjectPath)>;
+    fn get_link_by_index(&self, ifindex: i32) -> zbus::Result<(String, zbus::OwnedObjectPath)>;
 
     /// GetLinkByName method
     fn get_link_by_name(&self, name: &str) -> zbus::Result<(i32, zbus::OwnedObjectPath)>;

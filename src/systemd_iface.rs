@@ -197,10 +197,7 @@ pub(crate) trait Manager {
     fn get_unit(&self, name: &str) -> zbus::Result<zbus::OwnedObjectPath>;
 
     /// GetUnitByControlGroup method
-    fn get_unit_by_control_group(
-        &self,
-        cgroup: &str,
-    ) -> zbus::Result<zbus::OwnedObjectPath>;
+    fn get_unit_by_control_group(&self, cgroup: &str) -> zbus::Result<zbus::OwnedObjectPath>;
 
     /// GetUnitByInvocationID method
     #[zbus(name = "GetUnitByInvocationID")]
@@ -434,11 +431,8 @@ pub(crate) trait Manager {
     fn reload(&self) -> zbus::Result<()>;
 
     /// ReloadOrRestartUnit method
-    fn reload_or_restart_unit(
-        &self,
-        name: &str,
-        mode: &str,
-    ) -> zbus::Result<zbus::OwnedObjectPath>;
+    fn reload_or_restart_unit(&self, name: &str, mode: &str)
+        -> zbus::Result<zbus::OwnedObjectPath>;
 
     /// ReloadOrTryRestartUnit method
     fn reload_or_try_restart_unit(
@@ -457,8 +451,7 @@ pub(crate) trait Manager {
     fn reset_failed_unit(&self, name: &str) -> zbus::Result<()>;
 
     /// RestartUnit method
-    fn restart_unit(&self, name: &str, mode: &str)
-        -> zbus::Result<zbus::OwnedObjectPath>;
+    fn restart_unit(&self, name: &str, mode: &str) -> zbus::Result<zbus::OwnedObjectPath>;
 
     /// RevertUnitFiles method
     fn revert_unit_files(&self, files: &[&str]) -> zbus::Result<Vec<(String, String, String)>>;
@@ -541,11 +534,7 @@ pub(crate) trait Manager {
     fn thaw_unit(&self, name: &str) -> zbus::Result<()>;
 
     /// TryRestartUnit method
-    fn try_restart_unit(
-        &self,
-        name: &str,
-        mode: &str,
-    ) -> zbus::Result<zbus::OwnedObjectPath>;
+    fn try_restart_unit(&self, name: &str, mode: &str) -> zbus::Result<zbus::OwnedObjectPath>;
 
     /// UnmaskUnitFiles method
     fn unmask_unit_files(
@@ -568,8 +557,7 @@ pub(crate) trait Manager {
 
     /// JobNew signal
     #[zbus(signal)]
-    fn job_new(&self, id: u32, job: zbus::ObjectPath<'_>, unit: &str)
-        -> zbus::Result<()>;
+    fn job_new(&self, id: u32, job: zbus::ObjectPath<'_>, unit: &str) -> zbus::Result<()>;
 
     /// JobRemoved signal
     #[zbus(signal)]
